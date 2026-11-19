@@ -1,0 +1,49 @@
+# Committed defaults. Values here are placeholders: put real hostnames, user
+# names and stream names in settings.local.toml (gitignored), which is merged
+# over this file, and passwords in secrets.toml (gitignored).
+#
+# Environment sections: [default] always applies; [development] / [production]
+# are merged over it, selected by --env or the APP_ENV / ASPNETCORE_ENVIRONMENT /
+# DOTNET_ENVIRONMENT environment variable (first one set wins).
+
+# [default]
+# appname = "..."   # defaults to [project] name in pyproject.toml
+
+# Databases: add a [databases.<name>] table, then use factory.get_engine("<name>").
+#   connection_string  - "mssql+mssql-python://<ODBC connection string>" (preferred)
+#                        or any SQLAlchemy URL, e.g. "mssql+pyodbc://host/db?driver=..."
+#   isolation_level    - optional, defaults to "AUTOCOMMIT"
+#   password           - do not set here; put it in secrets.toml under
+#                        [default.databases.<name>]. It is injected separately, never
+#                        formatted into the connection string.
+[default.databases.main]
+connection_string = "mssql+mssql-python://Server=<server>;Database=<database>;TrustServerCertificate=yes;Encrypt=yes;Trusted_Connection=yes"
+
+[default.databases.sqlauth]
+connection_string = "mssql+mssql-python://Server=<server>;Database=<database>;UID=<user>;TrustServerCertificate=yes;Encrypt=yes;"
+# Optional: read the password from an environment variable instead of secrets.toml.
+# Keys work at any table depth; the prefix is stripped and the rest must match the
+# setting name exactly (case-sensitive), so this reads APP_SQLAUTH_DB_password.
+#external--env_prefix = "APP_SQLAUTH_DB_"
+#external--env_only = [
+#    "password",
+#]
+
+# ODBC connection string for pyodbc, not preferred
+# connection_string = "mssql+pyodbc://<server>/<database>?driver=ODBC+Driver+18+for+SQL+Server&trusted_connection=yes"
+
+[default.logging]
+level = "INFO"
+
+# Logging keys are passed to mtz_logging.init_logging. Setting firehose_stream
+# adds a Firehose sink, so set it in settings.local.toml, e.g.
+#   [production.logging]
+#   firehose_stream = "<stream-name>"
+#   aws_profile = "default"
+[development.logging]
+log_es = false
+level = "INFO"
+
+[production.logging]
+log_es = false
+level = "INFO"

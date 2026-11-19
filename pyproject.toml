@@ -1,0 +1,96 @@
+[project]
+# The project name is defined here only: it is the app name used for logging
+# (AppSettings.appname). To rename, change it and the [project.scripts] key.
+name = "dbschemer"
+version = "0.1.0"
+description = "A tool for dumping database schemas for use by LLM agents."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "click==8.*",
+    "loguru==0.*",
+    # Not imported: installs a .pth hook so requests/pip trust the OS certificate
+    # store (needed behind TLS-inspecting corporate proxies).
+    "pip_system_certs==4.*",
+    "SQLAlchemy==2.*",
+    # mssql-python has no SQLAlchemy dialect yet; db.py routes it through the
+    # pyodbc dialect, so pyodbc must stay installed.
+    "pyodbc",
+    "mssql-python>=1.4.0",
+    "nscomponents",
+    "psycopg[binary]>=3.3.9",
+    "pymysql>=1.2.4",
+]
+
+[project.scripts]
+dbschemer = "locallib.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+# nscomponents is a git dependency (see [tool.uv.sources]).
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+# Only the locallib package is installed. dbschemer.py is a checkout-only shim
+# (``uv run dbschemer.py``); installed wheels use the console script instead.
+packages = ["locallib"]
+
+[tool.hatch.build.targets.wheel.force-include]
+# Packaged defaults: in an installed wheel AppSettings.load reads only
+# locallib/settings.toml (a source checkout uses the repo-root copy). Settings are
+# never read from the working directory.
+"settings.toml" = "locallib/settings.toml"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.uv.sources]
+nscomponents = { git = "https://github.com/netshane/nscomponents" }
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "unit: mark a test as a unit test",
+    "slow: mark a test as slow",
+    "unit_external: mark a test that requires external resources",
+    "integration: mark a test as an integration test that should not be run without an environment set up",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+extend-exclude = [".copier"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["locallib"]
+
+[tool.mypy]
+python_version = "3.13"
+files = ["locallib", "dbschemer.py"]
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = ["nscomponents", "nscomponents.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false

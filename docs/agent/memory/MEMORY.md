@@ -1,0 +1,22 @@
+# Memory
+
+- `SettingsBase.from_toml` section lookup is case-sensitive; sections are lowercase. Always pass `force_env=<lowercase>` (done in `AppSettings.load`).
+- `from_toml` deep-merges settings -> secrets -> local, so secrets.toml can add `password` to a `[default.databases.<name>]` table.
+- `mlog.init_logging` adds a Firehose sink when `firehose_stream` is set; keep it out of test settings.
+- CliRunner captures loguru output because `init_logging` adds `sys.stdout` inside the group callback.
+- SQLAlchemy 2.0.44 has no mssql-python dialect; `mssql://` + `creator` needs `pyodbc` installed.
+- Click runs the group callback before subcommand `--help`; heavy setup lives in `@pass_factory` (lazy) so help works with broken settings.
+- `external--env_prefix` works at any table depth; stripped key match is case-sensitive.
+- Project name lives only in `pyproject.toml`; `settings.project_name()` reads it (metadata fallback). Env vars checked in order: `APP_ENV`, `ASPNETCORE_ENVIRONMENT`, `DOTNET_ENVIRONMENT` (`ENV_VAR_NAMES`).
+- Copier copies files verbatim; `.copier/rename_project.py` (post-copy task, needs `--trust`) does the renaming. Copier from a local dirty repo includes uncommitted/untracked files.
+- The project is packaged with `hatchling` (uv_build needs `module-name` == package dir); the wheel holds only `locallib` (+ `locallib/settings.toml`); the CLI is in `locallib/cli.py`, and `dbschemer.py` is a checkout-only shim.
+- Copier keeps `_copier_operation == "update"` for every render inside an update (old and new fresh copies), so copy-only task logic is safe.
+- Settings are never read from the cwd: `default_settings_dir()` = packaged `locallib/` if `settings.toml` is there, else repo root. Tests patch `locallib.appsettings.default_settings_dir` (imported by name).
+- Export: tests use `tests/fakes.py` (`FakeEngine` maps query constant -> rows); CLI tests patch `ServiceFactory.from_environment` to return a factory with a fake `engine_builder`.
+- `make_url` raises `sqlalchemy.exc.ArgumentError` with the full string in the message; never echo it (export maps it to a generic "Invalid connection_string").
+- `uvx ruff format` rewrites any tracked file, so `git rm` on a just-formatted file needs `-f`.
+- `mssql_python.connect` failures (TCP/ODBC layer) raise a bare `RuntimeError("[Microsoft]...")` from `ddbc_bindings`, not `mssql_python.Error`; `db_errors.is_db_error` recognizes it by prefix.
+- Never use `logger.exception` / `logger.opt(exception=...)` on error paths: loguru `diagnose=True` prints frame locals (connection strings, `PWD=`). Use `ErrorReporter` (stdlib `traceback`, behind `--traceback`).
+- `.dbschemer.toml` databases use `type/server/database/user/port` (or a raw `connection_string`, mutually exclusive); `db.build_connection` builds the string, `db.dialect_for` picks the query set in `services/queries/{sqlserver,postgres,mysql}.py`. Postgres/MySQL queries are unverified against a live server (see the spec).
+- Query modules share constant names and result aliases; a `None` query means "not applicable" and `SchemaExtractor._rows` returns `[]`.
+- `sql_variant` (e.g. `sys.extended_properties.value`, `sys.parameters.default_value`) is unsupported by `mssql_python` (ODBC type -150, fails on fetch): always `CAST(... AS NVARCHAR(MAX))` in SQL. `tests/unit/test_sqlserver_queries.py` enforces it.
