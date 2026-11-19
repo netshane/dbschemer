@@ -2,6 +2,22 @@
 
 A tool for dumping database schemas for use by LLM agents.
 
+## Installation
+
+```sh
+uv tool install --from git+https://github.com/netshane/dbschemer dbschemer
+
+# creates a .dbschemer.toml in the current folder.  Update settings
+dbschemer init
+
+# run tool with
+dbschmer export [DB NAME]
+
+# upgrade with
+uv tool upgrade dbschemer
+```
+
+## Configuration
 This tool is intended to be installed using `uv tool install`.
 It expects a config file with the name `.dbschemer.toml` in the current directory with the following layout:
 ```toml
@@ -46,23 +62,14 @@ output="./docs/db/sample2"
 # connection_string="..."
 ```
 
-## Installation
-
-```sh
-uv tool install --from git+ssh://git@nsforge.netshane.com:222/shane/dbschemer.git dbschemer
-
-# upgrade with
-uv tool upgrade dbschemer
-```
-
 ## Usage
 
 ```sh
 # export the database configured as [databases.<database_name>]
-uv run dbschemer export <database_name> [--file <config_file>] [--row-count]
+dbschemer export <database_name> [--file <config_file>] [--row-count]
 
 # create a config file in the current directory
-uv run dbschemer init
+dbschemer init
 ```
 
 - `--file` defaults to `./.dbschemer.toml`.
